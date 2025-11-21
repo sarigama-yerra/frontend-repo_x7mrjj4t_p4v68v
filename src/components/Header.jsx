@@ -11,6 +11,7 @@ const navItems = [
 
 export default function Header({ lang = 'it' }) {
   const [open, setOpen] = useState(false);
+  const [logoOk, setLogoOk] = useState(true);
 
   const scrollTo = (id) => {
     const el = document.getElementById(id);
@@ -23,11 +24,20 @@ export default function Header({ lang = 'it' }) {
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        <div className="mt-4 rounded-2xl border border-white/10 bg-[#0e1926]/60 backdrop-blur-xl">
+        <div className="mt-4 rounded-2xl border border-white/10 bg-[#0e1926]/60 backdrop-blur-xl shadow-[0_10px_40px_-12px_rgba(8,134,217,0.25)] ring-1 ring-white/5">
           <div className="flex items-center justify-between px-4 py-3 sm:px-6">
-            {/* Logo area */}
+            {/* Brand area */}
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#0886d9] to-cyan-400 shadow-lg shadow-cyan-500/20 ring-1 ring-white/10" />
+              {logoOk ? (
+                <img
+                  src="/logo.png"
+                  alt="TG CARGO"
+                  className="h-10 w-10 rounded-xl object-contain ring-1 ring-white/10 bg-white/5 p-1.5"
+                  onError={() => setLogoOk(false)}
+                />
+              ) : (
+                <div className="h-10 w-10 rounded-xl bg-gradient-to-br from-[#0886d9] to-cyan-400 shadow-lg shadow-cyan-500/20 ring-1 ring-white/10" />
+              )}
               <div className="leading-tight">
                 <div className="text-white font-semibold tracking-wide">TG CARGO</div>
                 <div className="text-xs text-white/60">Spedizioni 2025</div>
@@ -47,7 +57,7 @@ export default function Header({ lang = 'it' }) {
               ))}
 
               {/* Language badge */}
-              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-white/80">
+              <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-white/80 shadow-inner shadow-black/10">
                 <Globe size={16} className="opacity-80" />
                 <span className="text-xs">IT / EN</span>
               </div>
