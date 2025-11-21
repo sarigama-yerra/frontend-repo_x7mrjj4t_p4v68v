@@ -1,13 +1,25 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 export default function HeroImagePicker({ onClose }) {
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState('');
+  const [pos, setPos] = useState({ x: 50, y: 50 });
   const inputRef = useRef(null);
 
   useEffect(() => {
     const existing = localStorage.getItem('tg_hero_image');
     if (existing) setPreview(existing);
+    const posStored = localStorage.getItem('tg_hero_pos');
+    if (posStored) {
+      try {
+        const parsed = JSON.parse(posStored);
+        if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') {
+          setPos({ x: parsed.x, y: parsed.y });
+        }
+      } catch (e) {
+        // ignore
+      }
+    }
   }, []);
 
   const onFiles = (files) => {
@@ -41,9 +53,14 @@ export default function HeroImagePicker({ onClose }) {
   const handleSave = () => {
     if (!preview) return;
     localStorage.setItem('tg_hero_image', preview);
+    localStorage.setItem('tg_hero_pos', JSON.stringify(pos));
     if (onClose) onClose();
     window.dispatchEvent(new Event('tg-hero-updated'));
   };
+
+  const previewStyle = useMemo(() => ({
+    objectPosition: `${pos.x}% ${pos.y}%`,
+  }), [pos]);
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4">
@@ -65,15 +82,29 @@ export default function HeroImagePicker({ onClose }) {
 
         {preview && (
           <div className="mt-4 grid place-items-center">
-            <div className="rounded-xl border border-white/10 bg-white/5 p-2">
-              <img src={preview} alt="Anteprima Hero" className="max-h-48 w-auto object-contain" />
+            <div className="rounded-xl border border-white/10 bg-white/5 p-2 w-full">
+              <div className="relative h-48 w-full overflow-hidden rounded-lg border border-white/10">
+                <img src={preview} alt="Anteprima Hero" className="h-full w-full object-cover" style={previewStyle} />
+                <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex w-[90%] max-w-sm flex-col gap-3 rounded-xl bg-black/40 p-3 backdrop-blur">
+                  <label className="flex items-center gap-3 text-xs text-white/80">
+                    X
+                    <input type="range" min="0" max="100" value={pos.x} onChange={(e) => setPos((p) => ({ ...p, x: Number(e.target.value) }))} className="flex-1" />
+                    <span className="w-10 text-right">{pos.x}%</span>
+                  </label>
+                  <label className="flex items-center gap-3 text-xs text-white/80">
+                    Y
+                    <input type="range" min="0" max="100" value={pos.y} onChange={(e) => setPos((p) => ({ ...p, y: Number(e.target.value) }))} className="flex-1" />
+                    <span className="w-10 text-right">{pos.y}%</span>
+                  </label>
+                </div>
+              </div>
             </div>
           </div>
         )}
 
         <div className="mt-6 flex items-center justify-between gap-3">
           <button
-            onClick={() => { localStorage.removeItem('tg_hero_image'); window.dispatchEvent(new Event('tg-hero-updated')); if (onClose) onClose(); }}
+            onClick={() => { localStorage.removeItem('tg_hero_image'); localStorage.removeItem('tg_hero_pos'); window.dispatchEvent(new Event('tg-hero-updated')); if (onClose) onClose(); }}
             className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white/80 hover:bg-white/10"
           >
             Ripristina 3D
