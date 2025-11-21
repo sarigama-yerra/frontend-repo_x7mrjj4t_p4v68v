@@ -4,7 +4,10 @@ export default function HeroImagePicker({ onClose }) {
   const [preview, setPreview] = useState(null);
   const [error, setError] = useState('');
   const [pos, setPos] = useState({ x: 50, y: 50 });
+  const [scale, setScale] = useState(1);
   const inputRef = useRef(null);
+  const frameRef = useRef(null);
+  const dragRef = useRef({ active: false, startX: 0, startY: 0, startPos: { x: 50, y: 50 } });
 
   useEffect(() => {
     const existing = localStorage.getItem('tg_hero_image');
@@ -16,9 +19,12 @@ export default function HeroImagePicker({ onClose }) {
         if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') {
           setPos({ x: parsed.x, y: parsed.y });
         }
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
+    }
+    const scStored = localStorage.getItem('tg_hero_scale');
+    if (scStored) {
+      const v = Number(scStored);
+      if (!Number.isNaN(v) && v > 0) setScale(v);
     }
   }, []);
 
@@ -54,13 +60,54 @@ export default function HeroImagePicker({ onClose }) {
     if (!preview) return;
     localStorage.setItem('tg_hero_image', preview);
     localStorage.setItem('tg_hero_pos', JSON.stringify(pos));
+    localStorage.setItem('tg_hero_scale', String(scale));
     if (onClose) onClose();
     window.dispatchEvent(new Event('tg-hero-updated'));
   };
 
   const previewStyle = useMemo(() => ({
     objectPosition: `${pos.x}% ${pos.y}%`,
-  }), [pos]);
+    transform: `scale(${scale})`,
+    transformOrigin: 'center center',
+  }), [pos, scale]);
+
+  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
+
+  const startDrag = (clientX, clientY) => {
+    dragRef.current = {
+      active: true,
+      startX: clientX,
+      startY: clientY,
+      startPos: { ...pos },
+    };
+  };
+  const onMouseDown = (e) => {
+    if (!frameRef.current) return;
+    startDrag(e.clientX, e.clientY);
+    e.preventDefault();
+  };
+  const onTouchStart = (e) => {
+    if (!frameRef.current) return;
+    const t = e.touches[0];
+    startDrag(t.clientX, t.clientY);
+  };
+  const onMove = (clientX, clientY) => {
+    if (!dragRef.current.active || !frameRef.current) return;
+    const rect = frameRef.current.getBoundingClientRect();
+    const dxPx = clientX - dragRef.current.startX;
+    const dyPx = clientY - dragRef.current.startY;
+    const dxPct = (dxPx / rect.width) * 100;
+    const dyPct = (dyPx / rect.height) * 100;
+    const nx = clamp(dragRef.current.startPos.x + dxPct, 0, 100);
+    const ny = clamp(dragRef.current.startPos.y + dyPct, 0, 100);
+    setPos({ x: nx, y: ny });
+  };
+  const onMouseMove = (e) => onMove(e.clientX, e.clientY);
+  const onTouchMove = (e) => {
+    const t = e.touches[0];
+    onMove(t.clientX, t.clientY);
+  };
+  const endDrag = () => { dragRef.current.active = false; };
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 p-4">
@@ -83,19 +130,41 @@ export default function HeroImagePicker({ onClose }) {
         {preview && (
           <div className="mt-4 grid place-items-center">
             <div className="rounded-xl border border-white/10 bg-white/5 p-2 w-full">
-              <div className="relative h-48 w-full overflow-hidden rounded-lg border border-white/10">
-                <img src={preview} alt="Anteprima Hero" className="h-full w-full object-cover" style={previewStyle} />
+              <div
+                ref={frameRef}
+                className="relative h-48 w-full overflow-hidden rounded-lg border border-white/10 select-none"
+                onMouseDown={onMouseDown}
+                onMouseMove={onMouseMove}
+                onMouseUp={endDrag}
+                onMouseLeave={endDrag}
+                onTouchStart={onTouchStart}
+                onTouchMove={onTouchMove}
+                onTouchEnd={endDrag}
+              >
+                <img
+                  src={preview}
+                  alt="Anteprima Hero"
+                  className="h-full w-full object-cover will-change-transform"
+                  style={previewStyle}
+                  draggable={false}
+                />
                 <div className="absolute bottom-2 left-1/2 -translate-x-1/2 flex w-[90%] max-w-sm flex-col gap-3 rounded-xl bg-black/40 p-3 backdrop-blur">
                   <label className="flex items-center gap-3 text-xs text-white/80">
                     X
                     <input type="range" min="0" max="100" value={pos.x} onChange={(e) => setPos((p) => ({ ...p, x: Number(e.target.value) }))} className="flex-1" />
-                    <span className="w-10 text-right">{pos.x}%</span>
+                    <span className="w-10 text-right">{Math.round(pos.x)}%</span>
                   </label>
                   <label className="flex items-center gap-3 text-xs text-white/80">
                     Y
                     <input type="range" min="0" max="100" value={pos.y} onChange={(e) => setPos((p) => ({ ...p, y: Number(e.target.value) }))} className="flex-1" />
-                    <span className="w-10 text-right">{pos.y}%</span>
+                    <span className="w-10 text-right">{Math.round(pos.y)}%</span>
                   </label>
+                  <label className="flex items-center gap-3 text-xs text-white/80">
+                    Zoom
+                    <input type="range" min="1" max="2.5" step="0.01" value={scale} onChange={(e) => setScale(Number(e.target.value))} className="flex-1" />
+                    <span className="w-10 text-right">{scale.toFixed(2)}x</span>
+                  </label>
+                  <div className="text-[11px] text-white/60">Suggerimento: trascina l'immagine per spostarla.</div>
                 </div>
               </div>
             </div>
@@ -104,7 +173,7 @@ export default function HeroImagePicker({ onClose }) {
 
         <div className="mt-6 flex items-center justify-between gap-3">
           <button
-            onClick={() => { localStorage.removeItem('tg_hero_image'); localStorage.removeItem('tg_hero_pos'); window.dispatchEvent(new Event('tg-hero-updated')); if (onClose) onClose(); }}
+            onClick={() => { localStorage.removeItem('tg_hero_image'); localStorage.removeItem('tg_hero_pos'); localStorage.removeItem('tg_hero_scale'); window.dispatchEvent(new Event('tg-hero-updated')); if (onClose) onClose(); }}
             className="rounded-lg border border-white/10 bg-white/5 px-4 py-2 text-white/80 hover:bg-white/10"
           >
             Ripristina 3D

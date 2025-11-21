@@ -6,6 +6,7 @@ export default function Hero() {
   const [showPicker, setShowPicker] = useState(false);
   const [heroImg, setHeroImg] = useState(null);
   const [heroPos, setHeroPos] = useState({ x: 50, y: 50 });
+  const [heroScale, setHeroScale] = useState(1);
 
   useEffect(() => {
     const stored = localStorage.getItem('tg_hero_image');
@@ -17,9 +18,12 @@ export default function Hero() {
         if (typeof parsed?.x === 'number' && typeof parsed?.y === 'number') {
           setHeroPos({ x: parsed.x, y: parsed.y });
         }
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
+    }
+    const scStored = localStorage.getItem('tg_hero_scale');
+    if (scStored) {
+      const v = Number(scStored);
+      if (!Number.isNaN(v) && v > 0) setHeroScale(v);
     }
     const onUpdated = () => {
       const s = localStorage.getItem('tg_hero_image');
@@ -32,6 +36,11 @@ export default function Hero() {
             setHeroPos({ x: parsed.x, y: parsed.y });
           }
         } catch (e) {}
+      }
+      const sc = localStorage.getItem('tg_hero_scale');
+      if (sc) {
+        const v = Number(sc);
+        if (!Number.isNaN(v) && v > 0) setHeroScale(v);
       }
     };
     window.addEventListener('tg-hero-updated', onUpdated);
@@ -73,7 +82,7 @@ export default function Hero() {
                 src={heroImg}
                 alt="TG CARGO Hero"
                 className="h-full w-full object-cover"
-                style={{ objectPosition: `${heroPos.x}% ${heroPos.y}%` }}
+                style={{ objectPosition: `${heroPos.x}% ${heroPos.y}%`, transform: `scale(${heroScale})`, transformOrigin: 'center center' }}
               />
             ) : (
               <Spline scene="https://prod.spline.design/41MGRk-UDPKO-l6W/scene.splinecode" style={{ width: '100%', height: '100%' }} />
