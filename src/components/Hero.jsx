@@ -1,6 +1,22 @@
+import { useEffect, useState } from 'react';
 import Spline from '@splinetool/react-spline';
+import HeroImagePicker from './HeroImagePicker';
 
 export default function Hero() {
+  const [showPicker, setShowPicker] = useState(false);
+  const [heroImg, setHeroImg] = useState(null);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('tg_hero_image');
+    if (stored) setHeroImg(stored);
+    const onUpdated = () => {
+      const s = localStorage.getItem('tg_hero_image');
+      setHeroImg(s || null);
+    };
+    window.addEventListener('tg-hero-updated', onUpdated);
+    return () => window.removeEventListener('tg-hero-updated', onUpdated);
+  }, []);
+
   return (
     <section id="home" className="relative pt-32">
       {/* Glass gradient background */}
@@ -15,19 +31,36 @@ export default function Hero() {
             <p className="mt-5 text-lg text-white/70 max-w-xl">
               Soluzioni su misura via terra, mare e aerea. Affidabilità, velocità e un servizio clienti dedicato per ogni spedizione.
             </p>
-            <div className="mt-8">
+            <div className="mt-8 flex items-center gap-3">
               <a href="#contact" className="inline-flex items-center gap-2 rounded-2xl bg-[#0886d9] px-6 py-3 text-white shadow-lg shadow-cyan-500/20 ring-1 ring-white/20 hover:translate-y-[-1px] active:translate-y-[0px] transition-transform">
                 Contattaci
               </a>
+              <button
+                type="button"
+                onClick={() => setShowPicker(true)}
+                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white/80 hover:bg-white/10"
+              >
+                Cambia immagine hero
+              </button>
             </div>
           </div>
 
-          {/* 3D Spline Scene */}
+          {/* Visual area: Spline 3D or uploaded image */}
           <div className="relative h-[380px] sm:h-[520px] lg:h-[600px] rounded-3xl overflow-hidden border border-white/10 bg-white/5 backdrop-blur-xl">
-            <Spline scene="https://prod.spline.design/41MGRk-UDPKO-l6W/scene.splinecode" style={{ width: '100%', height: '100%' }} />
+            {heroImg ? (
+              <img
+                src={heroImg}
+                alt="TG CARGO Hero"
+                className="h-full w-full object-cover"
+              />
+            ) : (
+              <Spline scene="https://prod.spline.design/41MGRk-UDPKO-l6W/scene.splinecode" style={{ width: '100%', height: '100%' }} />
+            )}
           </div>
         </div>
       </div>
+
+      {showPicker && <HeroImagePicker onClose={() => setShowPicker(false)} />}
     </section>
   );
 }
