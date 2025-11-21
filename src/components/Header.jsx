@@ -1,5 +1,6 @@
-import { useState } from 'react';
-import { Menu, X, Globe } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Menu, X, Globe, Upload } from 'lucide-react';
+import LogoUploader from './LogoUploader';
 
 const navItems = [
   { key: 'home', it: 'Home', en: 'Home' },
@@ -12,6 +13,19 @@ const navItems = [
 export default function Header({ lang = 'it' }) {
   const [open, setOpen] = useState(false);
   const [logoOk, setLogoOk] = useState(true);
+  const [logoDataUrl, setLogoDataUrl] = useState(null);
+  const [showUploader, setShowUploader] = useState(false);
+
+  useEffect(() => {
+    const stored = localStorage.getItem('tg_logo_dataurl');
+    if (stored) setLogoDataUrl(stored);
+    const onUpdated = () => {
+      const s = localStorage.getItem('tg_logo_dataurl');
+      setLogoDataUrl(s || null);
+    };
+    window.addEventListener('tg-logo-updated', onUpdated);
+    return () => window.removeEventListener('tg-logo-updated', onUpdated);
+  }, []);
 
   const scrollTo = (id) => {
     const el = document.getElementById(id);
@@ -20,6 +34,8 @@ export default function Header({ lang = 'it' }) {
       setOpen(false);
     }
   };
+
+  const brandImgSrc = logoDataUrl || '/logo.png';
 
   return (
     <header className="fixed top-0 left-0 right-0 z-50">
@@ -30,7 +46,7 @@ export default function Header({ lang = 'it' }) {
             <div className="flex items-center gap-3">
               {logoOk ? (
                 <img
-                  src="/logo.png"
+                  src={brandImgSrc}
                   alt="TG CARGO"
                   className="h-10 w-10 rounded-xl object-contain ring-1 ring-white/10 bg-white/5 p-1.5"
                   onError={() => setLogoOk(false)}
@@ -45,7 +61,7 @@ export default function Header({ lang = 'it' }) {
             </div>
 
             {/* Desktop nav */}
-            <nav className="hidden md:flex items-center gap-8">
+            <nav className="hidden md:flex items-center gap-4 lg:gap-8">
               {navItems.map((item) => (
                 <button
                   key={item.key}
@@ -55,6 +71,16 @@ export default function Header({ lang = 'it' }) {
                   {lang === 'it' ? item.it : item.en}
                 </button>
               ))}
+
+              {/* Upload button (temporary to let user provide file) */}
+              <button
+                onClick={() => setShowUploader(true)}
+                className="inline-flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-3 py-1.5 text-white/80 hover:bg-white/10"
+                title="Carica logo"
+              >
+                <Upload size={16} />
+                <span className="text-xs">Carica logo</span>
+              </button>
 
               {/* Language badge */}
               <div className="flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-white/80 shadow-inner shadow-black/10">
@@ -85,7 +111,14 @@ export default function Header({ lang = 'it' }) {
                     {lang === 'it' ? item.it : item.en}
                   </button>
                 ))}
-                <div className="mt-2 inline-flex w-max items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-white/80">
+                <button
+                  onClick={() => setShowUploader(true)}
+                  className="mt-2 inline-flex w-max items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-white/80"
+                >
+                  <Upload size={16} className="opacity-80" />
+                  <span className="text-xs">Carica logo</span>
+                </button>
+                <div className="inline-flex w-max items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-white/80">
                   <Globe size={16} className="opacity-80" />
                   <span className="text-xs">IT / EN</span>
                 </div>
@@ -94,6 +127,8 @@ export default function Header({ lang = 'it' }) {
           )}
         </div>
       </div>
+
+      {showUploader && <LogoUploader onClose={() => setShowUploader(false)} />}
     </header>
   );
 }
